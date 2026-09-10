@@ -1,4 +1,4 @@
-﻿"""Desktop camera and video privacy shell with custom chrome and live diagnostics."""
+"""Desktop camera and video privacy shell with custom chrome and live diagnostics."""
 
 import multiprocessing as mp
 import queue
@@ -85,10 +85,7 @@ class TitleBar(QWidget):
             self.owner.showMaximized()
 
     def mousePressEvent(self, event):
-        if (
-            event.button() == Qt.MouseButton.LeftButton
-            and self.owner.windowHandle()
-        ):
+        if event.button() == Qt.MouseButton.LeftButton and self.owner.windowHandle():
             self.owner.windowHandle().startSystemMove()
 
     def mouseDoubleClickEvent(self, event):
@@ -101,9 +98,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("FaceVeil â€” Camera Studio")
-        self.setWindowFlags(
-            Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint
-        )
+        self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint)
         self.resize(1240, 850)
         self.setMinimumSize(1000, 720)
         self.setStyleSheet(STYLE)
@@ -180,9 +175,7 @@ class MainWindow(QMainWindow):
         self.confidence.setValue(70)
 
         self.confidence_label = label("70%", "badge")
-        self.confidence.setToolTip(
-            "YuNet score threshold, not a probability of anonymity."
-        )
+        self.confidence.setToolTip("YuNet score threshold, not a probability of anonymity.")
 
         self.cover_all = QCheckBox("Cover the entire image")
         self.cover_all.setChecked(True)
@@ -257,11 +250,7 @@ class MainWindow(QMainWindow):
         self.source.currentIndexChanged.connect(self.source_changed)
 
         self.model_label = label(
-            (
-                "YuNet ready"
-                if MODEL_PATH.is_file()
-                else "Basic detector • YuNet missing"
-            ),
+            ("YuNet ready" if MODEL_PATH.is_file() else "Basic detector • YuNet missing"),
             "badge",
         )
 
@@ -290,9 +279,7 @@ class MainWindow(QMainWindow):
         self.debug_panel.setObjectName("card")
 
         debug_layout = QVBoxLayout(self.debug_panel)
-        debug_layout.addWidget(
-            label("LIVE DIAGNOSTICS", "eyebrow")
-        )
+        debug_layout.addWidget(label("LIVE DIAGNOSTICS", "eyebrow"))
         debug_layout.addWidget(self.debug_text)
         debug_layout.addWidget(self.graph)
 
@@ -313,9 +300,7 @@ class MainWindow(QMainWindow):
             self.fps,
             self.roi,
         ):
-            control.currentIndexChanged.connect(
-                self.settings_changed
-            )
+            control.currentIndexChanged.connect(self.settings_changed)
 
         for control in (
             self.cover_all,
@@ -324,15 +309,9 @@ class MainWindow(QMainWindow):
         ):
             control.toggled.connect(self.settings_changed)
 
-        self.strength.valueChanged.connect(
-            self.settings_changed
-        )
-        self.confidence.valueChanged.connect(
-            self.settings_changed
-        )
-        self.margin.valueChanged.connect(
-            self.settings_changed
-        )
+        self.strength.valueChanged.connect(self.settings_changed)
+        self.confidence.valueChanged.connect(self.settings_changed)
+        self.margin.valueChanged.connect(self.settings_changed)
 
         self.timer = QTimer(self)
         self.timer.setInterval(16)
@@ -341,9 +320,7 @@ class MainWindow(QMainWindow):
         self.settings_timer = QTimer(self)
         self.settings_timer.setSingleShot(True)
         self.settings_timer.setInterval(80)
-        self.settings_timer.timeout.connect(
-            self.send_settings
-        )
+        self.settings_timer.timeout.connect(self.send_settings)
 
         self.refresh_cameras()
         self.settings_changed()
@@ -365,9 +342,7 @@ class MainWindow(QMainWindow):
         heading = QHBoxLayout()
 
         title = QVBoxLayout()
-        title.addWidget(
-            label("LOCAL BY DESIGN", "eyebrow")
-        )
+        title.addWidget(label("LOCAL BY DESIGN", "eyebrow"))
         title.addWidget(
             label(
                 "Your camera. Your privacy.",
@@ -391,9 +366,7 @@ class MainWindow(QMainWindow):
         side = QVBoxLayout(sidebar)
         side.setContentsMargins(16, 16, 16, 16)
 
-        side.addWidget(
-            label("INPUT SOURCE", "eyebrow")
-        )
+        side.addWidget(label("INPUT SOURCE", "eyebrow"))
         side.addWidget(self.source)
         side.addWidget(self.camera)
         side.addWidget(self.choose_file)
@@ -410,9 +383,7 @@ class MainWindow(QMainWindow):
 
         strength_row = QHBoxLayout()
         strength_row.addWidget(self.strength)
-        strength_row.addWidget(
-            self.strength_label
-        )
+        strength_row.addWidget(self.strength_label)
         controls.addRow(
             "Strength",
             strength_row,
@@ -460,12 +431,8 @@ class MainWindow(QMainWindow):
         )
 
         confidence_row = QHBoxLayout()
-        confidence_row.addWidget(
-            self.confidence
-        )
-        confidence_row.addWidget(
-            self.confidence_label
-        )
+        confidence_row.addWidget(self.confidence)
+        confidence_row.addWidget(self.confidence_label)
 
         safety.addRow(
             "Min. score",
@@ -517,9 +484,7 @@ class MainWindow(QMainWindow):
         preview_card = QFrame()
         preview_card.setObjectName("card")
 
-        preview_layout = QVBoxLayout(
-            preview_card
-        )
+        preview_layout = QVBoxLayout(preview_card)
         preview_layout.setContentsMargins(
             12,
             12,
@@ -528,24 +493,16 @@ class MainWindow(QMainWindow):
         )
 
         preview_heading = QHBoxLayout()
-        preview_heading.addWidget(
-            label("LIVE PREVIEW", "eyebrow")
-        )
+        preview_heading.addWidget(label("LIVE PREVIEW", "eyebrow"))
         preview_heading.addStretch()
-        preview_heading.addWidget(
-            self.preview_badge
-        )
+        preview_heading.addWidget(self.preview_badge)
 
-        preview_layout.addLayout(
-            preview_heading
-        )
+        preview_layout.addLayout(preview_heading)
         preview_layout.addWidget(
             self.preview,
             1,
         )
-        preview_layout.addWidget(
-            self.renderer_label
-        )
+        preview_layout.addWidget(self.renderer_label)
 
         right.addWidget(
             preview_card,
@@ -555,10 +512,7 @@ class MainWindow(QMainWindow):
 
         right.addWidget(
             label(
-                (
-                    "ON-DEVICE PROCESSING     /     "
-                    "NO RECORDING     /     NO UPLOADS"
-                ),
+                ("ON-DEVICE PROCESSING     /     NO RECORDING     /     NO UPLOADS"),
                 "muted",
             )
         )
@@ -584,9 +538,7 @@ class MainWindow(QMainWindow):
                 "muted",
             )
         )
-        bottom.addWidget(
-            QSizeGrip(self)
-        )
+        bottom.addWidget(QSizeGrip(self))
 
         content.addLayout(bottom)
 
@@ -598,9 +550,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(shell)
 
     def change_renderer(self):
-        self.preview.set_gpu(
-            self.gpu.isChecked()
-        )
+        self.preview.set_gpu(self.gpu.isChecked())
         QTimer.singleShot(
             800,
             self.verify_renderer,
@@ -608,66 +558,39 @@ class MainWindow(QMainWindow):
 
     def verify_renderer(self):
         self.preview.verify_renderer()
-        self.renderer_label.setText(
-            self.preview.renderer_name
-        )
+        self.renderer_label.setText(self.preview.renderer_name)
 
     def toggle_debug(self):
-        self.debug_panel.setVisible(
-            self.debug_button.isChecked()
-        )
+        self.debug_panel.setVisible(self.debug_button.isChecked())
         self.settings_changed()
 
     def source_changed(self):
-        is_camera = (
-            self.source.currentData() == "camera"
-        )
+        is_camera = self.source.currentData() == "camera"
 
         self.camera.setVisible(is_camera)
-        self.refresh_button.setVisible(
-            is_camera
-        )
-        self.choose_file.setVisible(
-            not is_camera
-        )
+        self.refresh_button.setVisible(is_camera)
+        self.choose_file.setVisible(not is_camera)
 
-        self.start_button.setText(
-            "Start camera"
-            if is_camera
-            else "Start video"
-        )
+        self.start_button.setText("Start camera" if is_camera else "Start video")
 
         if self.process is not None:
-            self.stop_capture(
-                "Input source changed. Press Start to resume."
-            )
+            self.stop_capture("Input source changed. Press Start to resume.")
 
     def select_file(self):
         path, _ = QFileDialog.getOpenFileName(
             self,
             "Choose video file",
             "",
-            (
-                "Video files "
-                "(*.mp4 *.avi *.mov *.mkv *.webm);;"
-                "All files (*)"
-            ),
+            ("Video files (*.mp4 *.avi *.mov *.mkv *.webm);;All files (*)"),
         )
 
         if path:
             self.file_path = path
-            self.choose_file.setText(
-                "Change video file"
-            )
-            self.status.setText(
-                f"Video selected: {path}"
-            )
+            self.choose_file.setText("Change video file")
+            self.status.setText(f"Video selected: {path}")
 
     def selected_source(self):
-        if (
-            self.source.currentData()
-            == "file"
-        ):
+        if self.source.currentData() == "file":
             return self.file_path or None
 
         return self.camera.currentData()
@@ -694,22 +617,14 @@ class MainWindow(QMainWindow):
         index = next(
             (
                 i
-                for i, item in enumerate(
-                    devices
-                )
-                if (
-                    previous is not None
-                    and item.device_id
-                    == previous.device_id
-                )
+                for i, item in enumerate(devices)
+                if (previous is not None and item.device_id == previous.device_id)
             ),
             -1,
         )
 
         if index >= 0:
-            self.camera.setCurrentIndex(
-                index
-            )
+            self.camera.setCurrentIndex(index)
 
         self.camera.blockSignals(False)
 
@@ -717,26 +632,15 @@ class MainWindow(QMainWindow):
             previous is not None
             and index < 0
             and self.process is not None
-            and self.source.currentData()
-            == "camera"
+            and self.source.currentData() == "camera"
         ):
-            self.stop_capture(
-                "Selected camera disconnected."
-            )
+            self.stop_capture("Selected camera disconnected.")
 
-        self.camera.setEnabled(
-            bool(devices)
-        )
+        self.camera.setEnabled(bool(devices))
 
     def camera_changed(self):
-        if (
-            self.process is not None
-            and self.source.currentData()
-            == "camera"
-        ):
-            self.stop_capture(
-                "Camera changed. Press Start to resume."
-            )
+        if self.process is not None and self.source.currentData() == "camera":
+            self.stop_capture("Camera changed. Press Start to resume.")
 
     def settings(self):
         detector_width, preview_width = (
@@ -746,70 +650,38 @@ class MainWindow(QMainWindow):
         )[self.performance.currentIndex()]
 
         return Settings(
-            mode=FilterMode(
-                self.mode.currentText()
-            ),
+            mode=FilterMode(self.mode.currentText()),
             strength=self.strength.value(),
-            margin=(
-                self.margin.value() / 100
-            ),
-            cover_all=(
-                self.cover_all.isChecked()
-            ),
+            margin=(self.margin.value() / 100),
+            cover_all=(self.cover_all.isChecked()),
             mirror=self.mirror.isChecked(),
-            area=FaceArea(
-                self.area.currentText()
-            ),
-            max_faces=(
-                self.face_limit.currentData()
-            ),
-            confidence=(
-                self.confidence.value()
-                / 100
-            ),
+            area=FaceArea(self.area.currentText()),
+            max_faces=(self.face_limit.currentData()),
+            confidence=(self.confidence.value() / 100),
             detection_width=detector_width,
             preview_width=preview_width,
-            target_fps=int(
-                self.fps.currentText()
-            ),
-            blackout_missing=(
-                self.blackout_missing.isChecked()
-            ),
+            target_fps=int(self.fps.currentText()),
+            blackout_missing=(self.blackout_missing.isChecked()),
             roi=self.roi.currentData(),
-            acceleration=(
-                self.backend.currentText()
-            ),
-            debug=(
-                self.debug_button.isChecked()
-            ),
+            acceleration=(self.backend.currentText()),
+            debug=(self.debug_button.isChecked()),
         )
 
     def settings_changed(self):
-        self.strength_label.setText(
-            str(self.strength.value())
-        )
-        self.confidence_label.setText(
-            f"{self.confidence.value()}%"
-        )
+        self.strength_label.setText(str(self.strength.value()))
+        self.confidence_label.setText(f"{self.confidence.value()}%")
 
         model_ready = MODEL_PATH.is_file()
-        self.confidence.setEnabled(
-            model_ready
-        )
+        self.confidence.setEnabled(model_ready)
 
         partial = (
             self.area.currentIndex() != 0
-            or self.face_limit.currentData()
-            != 0
+            or self.face_limit.currentData() != 0
             or self.roi.currentIndex() != 0
         )
 
         if self.cover_all.isChecked():
-            note = (
-                "Full cover is on. "
-                "Turn it off in Safety "
-                "to preview face filters."
-            )
+            note = "Full cover is on. Turn it off in Safety to preview face filters."
         elif partial:
             note = (
                 "Partial coverage: other people or facial "
@@ -817,16 +689,10 @@ class MainWindow(QMainWindow):
                 "selected by size, not identity."
             )
         else:
-            note = (
-                "Face detection can miss people. Blur and "
-                "pixelation do not guarantee anonymity."
-            )
+            note = "Face detection can miss people. Blur and pixelation do not guarantee anonymity."
 
         if not model_ready:
-            note += (
-                " YuNet is missing; Eyes/Mouth "
-                "fall back to full-face coverage."
-            )
+            note += " YuNet is missing; Eyes/Mouth fall back to full-face coverage."
 
         self.scope_note.setText(note)
 
@@ -834,9 +700,7 @@ class MainWindow(QMainWindow):
             return
 
         self.generation += 1
-        self.preview.clear(
-            "Updating privacy settingsâ€¦"
-        )
+        self.preview.clear("Updating privacy settingsâ€¦")
 
         self.pending_settings = (
             self.generation,
@@ -845,28 +709,18 @@ class MainWindow(QMainWindow):
         self.settings_timer.start()
 
     def send_settings(self):
-        if (
-            self.process is None
-            or self.pending_settings is None
-        ):
+        if self.process is None or self.pending_settings is None:
             return
 
         try:
-            self.commands.put_nowait(
-                self.pending_settings
-            )
+            self.commands.put_nowait(self.pending_settings)
             self.pending_settings = None
         except queue.Full:
-            self.stop_capture(
-                "Settings queue stalled. "
-                "Restart the preview."
-            )
+            self.stop_capture("Settings queue stalled. Restart the preview.")
 
     def panic(self):
         self.cover_all.setChecked(True)
-        self.preview.clear(
-            "Full cover enabled"
-        )
+        self.preview.clear("Full cover enabled")
 
         if self.process is not None:
             self.send_settings()
@@ -878,30 +732,16 @@ class MainWindow(QMainWindow):
         source = self.selected_source()
 
         if source is None:
-            if (
-                self.source.currentData()
-                == "file"
-            ):
-                self.status.setText(
-                    "Choose a video file before starting."
-                )
+            if self.source.currentData() == "file":
+                self.status.setText("Choose a video file before starting.")
             else:
-                self.status.setText(
-                    "No camera connected. "
-                    "Connect a camera and refresh devices."
-                )
+                self.status.setText("No camera connected. Connect a camera and refresh devices.")
             return
 
-        self.output = self.context.Queue(
-            maxsize=3
-        )
-        self.commands = self.context.Queue(
-            maxsize=8
-        )
+        self.output = self.context.Queue(maxsize=3)
+        self.commands = self.context.Queue(maxsize=8)
         self.stopped = self.context.Event()
-        self.mailbox = FrameMailbox(
-            self.context
-        )
+        self.mailbox = FrameMailbox(self.context)
         self.generation = 0
 
         self.process = self.context.Process(
@@ -923,36 +763,21 @@ class MainWindow(QMainWindow):
             self.process = None
             self.dispose_queues()
 
-            self.status.setText(
-                "Could not start the capture worker."
-            )
+            self.status.setText("Could not start the capture worker.")
             return
 
         self.last_frame = time.perf_counter()
 
-        if (
-            self.source.currentData()
-            == "file"
-        ):
-            self.preview.clear(
-                "Opening video..."
-            )
-            self.status.setText(
-                "Opening video..."
-            )
+        if self.source.currentData() == "file":
+            self.preview.clear("Opening video...")
+            self.status.setText("Opening video...")
         else:
-            self.preview.clear(
-                "Opening camera..."
-            )
-            self.status.setText(
-                "Connecting..."
-            )
+            self.preview.clear("Opening camera...")
+            self.status.setText("Connecting...")
 
         self.start_button.setEnabled(False)
         self.stop_button.setEnabled(True)
-        self.preview_badge.setText(
-            "CONNECTING"
-        )
+        self.preview_badge.setText("CONNECTING")
         self.timer.start()
 
     def poll(self):
@@ -966,17 +791,11 @@ class MainWindow(QMainWindow):
                 packet = self.output.get_nowait()
 
                 if packet[0] == "end":
-                    self.stop_capture(
-                        "Video finished."
-                    )
+                    self.stop_capture("Video finished.")
                     return
 
                 if packet[0] == "error":
-                    message = (
-                        packet[1]
-                        if len(packet) > 1
-                        else "Capture failed."
-                    )
+                    message = packet[1] if len(packet) > 1 else "Capture failed."
                     self.stop_capture(message)
                     return
 
@@ -1005,125 +824,68 @@ class MainWindow(QMainWindow):
             else:
                 frame = None
 
-            age = (
-                time.perf_counter()
-                - stats["timestamp"]
-            )
+            age = time.perf_counter() - stats["timestamp"]
 
-            if (
-                frame is not None
-                and age < 0.5
-            ):
-                self.last_frame = (
-                    time.perf_counter()
-                )
+            if frame is not None and age < 0.5:
+                self.last_frame = time.perf_counter()
 
                 self.preview.set_frame(
                     frame,
                     stats,
                 )
 
-                self.preview_badge.setText(
-                    "COVERED"
-                    if stats["blocked"]
-                    else "LIVE"
-                )
+                self.preview_badge.setText("COVERED" if stats["blocked"] else "LIVE")
 
-                notice = (
-                    stats["notice"]
-                    or "Local processing"
-                )
+                notice = stats["notice"] or "Local processing"
 
                 self.status.setText(
-
-                        f"{stats['selected']} / "
-                        f"{stats['found']} faces covered • "
-                        f"{notice}"
-
+                    f"{stats['selected']} / {stats['found']} faces covered • {notice}"
                 )
 
-                if (
-                    self.debug_button.isChecked()
-                    and self.last_frame
-                    - self.last_debug_update
-                    > 0.2
-                ):
-                    self.last_debug_update = (
-                        self.last_frame
-                    )
+                if self.debug_button.isChecked() and self.last_frame - self.last_debug_update > 0.2:
+                    self.last_debug_update = self.last_frame
 
-                    self.graph.add(
-                        stats["detect_ms"]
-                    )
+                    self.graph.add(stats["detect_ms"])
 
                     scores = (
                         ", ".join(
-                            (
-                                "n/a"
-                                if value is None
-                                else f"{value:.1%}"
-                            )
-                            for value in stats[
-                                "scores"
-                            ]
+                            ("n/a" if value is None else f"{value:.1%}")
+                            for value in stats["scores"]
                         )
                         or "â€”"
                     )
 
                     self.debug_text.setText(
-
-                            f"{stats['fps']:.1f} processing FPS • "
-                            f"{stats['resolution']} • "
-                            f"transfer age {age * 1000:.1f} ms\n"
-                            f"Capture {stats['capture_ms']:.1f} ms  /  "
-                            f"Detect {stats['detect_ms']:.1f} ms  /  "
-                            f"Filter {stats['filter_ms']:.1f} ms\n"
-                            f"{stats['model']} • "
-                            f"{stats['backend']} • "
-                            "dropped notifications "
-                            f"{stats['dropped']}\n"
-                            f"Model scores: {scores} "
-                            "(not calibrated probabilities)"
-
+                        f"{stats['fps']:.1f} processing FPS • "
+                        f"{stats['resolution']} • "
+                        f"transfer age {age * 1000:.1f} ms\n"
+                        f"Capture {stats['capture_ms']:.1f} ms  /  "
+                        f"Detect {stats['detect_ms']:.1f} ms  /  "
+                        f"Filter {stats['filter_ms']:.1f} ms\n"
+                        f"{stats['model']} • "
+                        f"{stats['backend']} • "
+                        "dropped notifications "
+                        f"{stats['dropped']}\n"
+                        f"Model scores: {scores} "
+                        "(not calibrated probabilities)"
                     )
 
-        elapsed = (
-            time.perf_counter()
-            - self.last_frame
-        )
+        elapsed = time.perf_counter() - self.last_frame
 
         if elapsed > 0.75:
-            self.preview.clear(
-                "Waiting for a fresh processed frameâ€¦"
-            )
+            self.preview.clear("Waiting for a fresh processed frameâ€¦")
 
         if not self.process.is_alive():
-            if (
-                self.source.currentData()
-                == "file"
-            ):
-                self.stop_capture(
-                    "Video worker ended."
-                )
+            if self.source.currentData() == "file":
+                self.stop_capture("Video worker ended.")
             else:
-                self.stop_capture(
-                    "Camera worker ended. "
-                    "Check camera availability."
-                )
+                self.stop_capture("Camera worker ended. Check camera availability.")
 
         elif elapsed > 8:
-            if (
-                self.source.currentData()
-                == "file"
-            ):
-                self.stop_capture(
-                    "Video processing timed out."
-                )
+            if self.source.currentData() == "file":
+                self.stop_capture("Video processing timed out.")
             else:
-                self.stop_capture(
-                    "Camera timed out. "
-                    "Check connection and permissions."
-                )
+                self.stop_capture("Camera timed out. Check connection and permissions.")
 
     def dispose_queues(self):
         for channel in (
@@ -1168,9 +930,7 @@ class MainWindow(QMainWindow):
                 self.process.join(timeout=1)
 
             if self.process.is_alive():
-                self.status.setText(
-                    "Waiting for the capture worker to stop."
-                )
+                self.status.setText("Waiting for the capture worker to stop.")
                 self.timer.start()
                 return
 
@@ -1183,18 +943,13 @@ class MainWindow(QMainWindow):
         self.stop_button.setEnabled(False)
 
         self.preview_badge.setText(
-            "CAMERA OFF"
-            if self.source.currentData()
-            == "camera"
-            else "VIDEO OFF"
+            "CAMERA OFF" if self.source.currentData() == "camera" else "VIDEO OFF"
         )
 
         if isinstance(message, str):
             self.status.setText(message)
         else:
-            self.status.setText(
-                "Stopped • Capture released"
-            )
+            self.status.setText("Stopped • Capture released")
 
     def closeEvent(self, event):
         self.stop_capture()

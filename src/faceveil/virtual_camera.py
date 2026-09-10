@@ -76,9 +76,7 @@ class VirtualCameraOutput:
             self._camera.send(frame)
         except Exception as exc:
             self.stop()
-            raise VirtualCameraError(
-                "Sending a frame to the virtual camera failed."
-            ) from exc
+            raise VirtualCameraError("Sending a frame to the virtual camera failed.") from exc
 
     def stop(self) -> None:
         if self._camera is None:

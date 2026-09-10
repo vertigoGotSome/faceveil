@@ -35,6 +35,7 @@ from faceveil.filters import FaceArea, FilterMode, Settings
 from faceveil.preview import Preview, TimingGraph
 from faceveil.theme import STYLE
 from faceveil.transport import FrameMailbox
+from faceveil.virtual_camera import VirtualCameraError, VirtualCameraOutput
 
 
 def label(text, name=None):
@@ -119,7 +120,7 @@ class MainWindow(QMainWindow):
         self.last_frame = 0.0
         self.pending_settings = None
         self.last_debug_update = 0.0
-
+        self.virtual_camera = VirtualCameraOutput()
         self.preview = Preview()
 
         self.status = label(
@@ -580,7 +581,7 @@ class MainWindow(QMainWindow):
         )
         bottom.addWidget(
             label(
-                "v0.2 Â· Open source",
+                "v0.2 Â·  Development build",
                 "muted",
             )
         )
@@ -613,11 +614,15 @@ class MainWindow(QMainWindow):
         )
 
     def toggle_debug(self):
-        self.debug_panel.setVisible(
-            self.debug_button.isChecked()
-        )
-        self.settings_changed()
+        enabled = self.debug_button.isChecked()
 
+        self.debug_panel.setVisible(enabled)
+
+        if not enabled:
+            self.virtual_camera.stop()
+
+        self.settings_changed()
+        
     def source_changed(self):
         is_camera = (
             self.source.currentData() == "camera"
@@ -1022,6 +1027,26 @@ class MainWindow(QMainWindow):
                     frame,
                     stats,
                 )
+                
+                if self.debug_button.isChecked():
+                    try:
+                        if not self.virtual_camera.active:
+                            height, width = frame.shape[:2]
+                            device = self.virtual_camera.start(
+                                width,
+                                height,
+                                int(self.fps.currentText()),
+                            )
+                            self.status.setText(
+                                f"Debug virtual camera active · {device}"
+                            )
+
+                        self.virtual_camera.send(frame)
+
+                    except VirtualCameraError as exc:
+                        self.virtual_camera.stop()
+                        self.debug_button.setChecked(False)
+                        self.status.setText(str(exc))
 
                 self.preview_badge.setText(
                     "COVERED"
@@ -1152,8 +1177,10 @@ class MainWindow(QMainWindow):
         self,
         message="Stopped Â· Capture released",
     ):
+        
         self.timer.stop()
         self.settings_timer.stop()
+        self.virtual_camera.stop()
         self.pending_settings = None
         self.preview.clear()
 

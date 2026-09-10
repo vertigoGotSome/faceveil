@@ -8,6 +8,7 @@ import time
 import cv2
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtMultimedia import QMediaDevices
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -25,6 +26,7 @@ from PySide6.QtWidgets import (
 )
 
 from faceveil.capture import capture_loop
+from faceveil.devices import list_cameras
 from faceveil.filters import FilterMode, Settings
 
 
@@ -47,9 +49,12 @@ class MainWindow(QMainWindow):
         self.status.setWordWrap(True)
         self.source = QComboBox()
         self.source.addItems(["Kamera", "Videodatei"])
-        self.camera = QSpinBox()
-        self.camera.setRange(0, 99)
-        self.camera.setToolTip("OpenCV-Kameraindex: meist 0, bei weiteren Kameras 1, 2, …")
+        self.camera = QComboBox()
+        self.camera.setToolTip("Verbundene Kameras und virtuelle Kameras")
+        self.refresh_button = QPushButton("Kameraliste aktualisieren")
+        self.refresh_button.clicked.connect(self.refresh_cameras)
+        self.media_devices = QMediaDevices(self)
+        self.media_devices.videoInputsChanged.connect(self.refresh_cameras)
         self.choose_file = QPushButton("Videodatei auswählen …")
         self.choose_file.clicked.connect(self.pick_file)
         self.file_label = QLabel("Keine Datei ausgewählt")
@@ -73,15 +78,18 @@ class MainWindow(QMainWindow):
         self.stop_button.setEnabled(False)
         self.start_button.clicked.connect(self.start_capture)
         self.stop_button.clicked.connect(self.stop_capture)
-        self.source.currentIndexChanged.connect(self.update_source_controls)
+        self.source.currentIndexChanged.connect(self.source_changed)
+        self.camera.currentIndexChanged.connect(self.source_changed)
         self.mode.currentIndexChanged.connect(self.settings_changed)
         self.strength.valueChanged.connect(self.settings_changed)
         self.margin.valueChanged.connect(self.settings_changed)
         self.cover_all.toggled.connect(self.settings_changed)
         self.mirror.toggled.connect(self.settings_changed)
         form = QFormLayout()
+        self.form = form
         form.addRow("Quelle", self.source)
-        form.addRow("Kameraindex", self.camera)
+        form.addRow("Kamera", self.camera)
+        form.addRow(self.refresh_button)
         form.addRow(self.choose_file)
         form.addRow(self.file_label)
         form.addRow("Gesichtsfilter", self.mode)
@@ -125,19 +133,53 @@ class MainWindow(QMainWindow):
         self.timer = QTimer(self)
         self.timer.setInterval(33)
         self.timer.timeout.connect(self.poll)
+        self.refresh_cameras()
+
+    def refresh_cameras(self):
+        previous = self.camera.currentData()
+        devices = list_cameras()
+        self.camera.blockSignals(True)
+        self.camera.clear()
+        for device in devices:
+            self.camera.addItem(device.name, device)
+        if not devices:
+            self.camera.addItem("Keine Kamera gefunden", None)
+        selected = next(
+            (
+                index
+                for index, device in enumerate(devices)
+                if previous is not None and device.device_id == previous.device_id
+            ),
+            -1,
+        )
+        if selected >= 0:
+            self.camera.setCurrentIndex(selected)
+        self.camera.blockSignals(False)
+        if previous is not None and selected < 0 and self.process is not None:
+            if self.source.currentIndex() == 0:
+                self.stop_capture("Die ausgewählte Kamera wurde getrennt.")
+        self.update_source_controls()
+
+    def source_changed(self):
+        if self.process is not None:
+            self.stop_capture("Quelle geändert · Vorschau erneut starten")
         self.update_source_controls()
 
     def update_source_controls(self):
-        running = self.process is not None
-        self.source.setEnabled(not running)
-        self.camera.setEnabled(not running and self.source.currentIndex() == 0)
-        self.choose_file.setEnabled(not running and self.source.currentIndex() == 1)
+        camera_source = self.source.currentIndex() == 0
+        self.camera.setEnabled(self.camera.currentData() is not None)
+        self.form.setRowVisible(self.camera, camera_source)
+        self.form.setRowVisible(self.refresh_button, camera_source)
+        self.form.setRowVisible(self.choose_file, not camera_source)
+        self.form.setRowVisible(self.file_label, not camera_source)
 
     def pick_file(self):
         path, _ = QFileDialog.getOpenFileName(
             self, "Lokales Video wählen", "", "Videos (*.mp4 *.avi *.mov *.mkv);;Alle Dateien (*)"
         )
         if path:
+            if self.process is not None:
+                self.stop_capture("Videodatei geändert · Vorschau erneut starten")
             self.file_path = path
             self.file_label.setText(path)
 
@@ -167,7 +209,12 @@ class MainWindow(QMainWindow):
     def start_capture(self):
         if self.process is not None:
             return
-        source = self.camera.value() if self.source.currentIndex() == 0 else self.file_path
+        source = self.camera.currentData() if self.source.currentIndex() == 0 else self.file_path
+        if source is None:
+            self.status.setText(
+                "Keine Kamera verbunden. Kamera anschließen und Liste aktualisieren."
+            )
+            return
         if source == "":
             self.status.setText("Bitte zuerst eine Videodatei auswählen.")
             return

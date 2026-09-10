@@ -28,15 +28,18 @@ VS Code: Projektordner öffnen und `.venv\Scripts\python.exe` als Interpreter w�
 
 ## Benutzung
 
-1. **Kamera** wählen und mit Index 0 beginnen. Weitere Kameras können andere Indizes
-   haben; die Auswahl ist numerisch, eine automatische Geräteliste folgt später.
-   Alternativ **Videodatei** wählen und eine lokale Datei öffnen.
+1. Unter **Quelle** entweder **Kamera** oder **Videodatei** wählen.
+   Unter **Kamera** erscheint die Liste angeschlossener Geräte mit Namen,
+   einschließlich verfügbarer virtueller Kameras. Bei Bedarf **Kameraliste
+   aktualisieren** drücken. Die Liste aktualisiert sich auch bei Geräteänderungen.
+   Bei **Videodatei** erscheinen stattdessen Dateiauswahl und Dateiname.
 2. **Vorschau starten**. Die Kamera wird erst jetzt geöffnet.
 3. Standardmäßig ist das gesamte Bild schwarz abgedeckt. Zum Ausprobieren der
    Gesichtseffekte **Gesamtes Bild schwarz abdecken** deaktivieren.
 4. Pixelation, Blur, Mosaic oder Abdecken wählen; Stärke und Gesichtsrand anpassen.
    Bei Abdecken ist die Stärke ohne Bedeutung. Spiegelung betrifft die Vorschau.
-5. Vor einem Quellenwechsel **Stoppen** drücken. Dateiende stoppt die Vorschau.
+5. Ein Quellen- oder Kamerawechsel stoppt die laufende Vorschau automatisch.
+   Danach **Vorschau starten** drücken. Dateiende stoppt die Vorschau ebenfalls.
 
 Pixelation erzeugt grobe Farbblöcke, Blur einen Gauß-Weichzeichner, Mosaic ein
 sichtbares Kachelraster, Abdecken schwarze Rechtecke über erkannten Gesichtern.
@@ -63,6 +66,7 @@ src/faceveil/
   app.py         Desktop-UI und Prozesssteuerung
   capture.py     Quellenvalidierung und Verarbeitungsschleife
   detection.py   austauschbare Gesichtserkennung
+  devices.py     Gerätenamen, Gerätekennungen und Qt-Kamerazugriff
   filters.py     Einstellungen und Bildfilter ohne UI-Abhängigkeit
 tests/           Filter-, Video- und UI-Tests ohne echte Kamera
 .github/         CI, Issue-Formulare und Pull-Request-Vorlage

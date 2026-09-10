@@ -35,3 +35,16 @@ Deshalb bisher nur lokales Git-Repository; kein öffentliches Repository erstell
 kein Remote-Push durchgeführt. Issue-Formulare, PR-Vorlage, CI-Konfiguration und
 Backlog sind vorbereitet. Live-Issues und Branchschutz sind noch nicht angelegt.
 Fortsetzung nach Anmeldung oder Bereitstellung eines leeren privaten Repository-Links.
+
+## Nachtrag · Auswahl verbundener Kameras
+
+39 Tests erfolgreich, Ruff-Lint und Formatprüfung erfolgreich. Ergänzt wurden
+Gerätenamen, Beibehalten der ausgewählten Gerätekennung nach Umsortierung,
+leere Liste und nachträglich gefundene Kamera, Quellenabhängigkeit der sichtbaren
+Bedienelemente, Auswahlauflösung anhand der ID und Qt-Bildkonvertierung.
+Der Test mit echtem Video-Kindprozess stoppt jetzt durch Wechsel der Quelle.
+Der Fehlertest prüft zusätzlich die Übergabe der gewählten Kamera an den Adapter.
+
+Die Geräteabfrage in der eingeschränkten Ausführungsumgebung lieferte keine
+Kameras. Deshalb wurde kein tatsächlicher Kamerastream für diesen Nachtrag
+abgenommen; Gerätenamen und Zuordnung sind mit simulierten Geräten geprüft.

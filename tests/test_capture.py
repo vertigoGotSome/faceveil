@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from faceveil.capture import capture_loop, offer, validate_source
+from faceveil.devices import CameraSource
 from faceveil.filters import Settings
 
 
@@ -14,7 +15,7 @@ class LocalQueue(queue.Queue):
         pass
 
 
-@pytest.mark.parametrize("source", [-1, 100, "https://example.com/video", "", True])
+@pytest.mark.parametrize("source", [0, -1, 100, "https://example.com/video", "", True])
 def test_invalid_source(source):
     with pytest.raises(ValueError):
         validate_source(source)
@@ -74,10 +75,18 @@ def test_detector_failure_releases_source_without_emitting_frame(monkeypatch):
             raise RuntimeError("detector unavailable")
 
     capture = Capture()
-    monkeypatch.setattr(module.cv2, "VideoCapture", lambda source: capture)
+    selected = CameraSource(b"selected-device", "USB Camera")
+    opened = []
+
+    def open_camera(source, stopped):
+        opened.append(source)
+        return capture
+
+    monkeypatch.setattr(module, "CameraCapture", open_camera)
     monkeypatch.setattr(module, "FaceDetector", BrokenDetector)
     output = LocalQueue()
-    capture_loop(0, Settings(cover_all=False), output, queue.Queue(), threading.Event())
+    capture_loop(selected, Settings(cover_all=False), output, queue.Queue(), threading.Event())
+    assert opened == [selected]
     assert output.get_nowait()[0] == "error"
     assert output.empty()
     assert capture.released

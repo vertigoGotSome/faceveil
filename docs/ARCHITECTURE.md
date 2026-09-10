@@ -2,7 +2,7 @@
 
 ## 001 · Python, PySide6 und OpenCV
 
-PySide6 liefert native Desktop-Widgets, OpenCV Kamera-/Dateizugriff und
+PySide6 liefert native Desktop-Widgets und Kamerazugriff, OpenCV Dateizugriff und
 Bildoperationen. Python 3.11 ist die lokal verfügbare, getestete Basis.
 Eine Weboberfläche würde zusätzliche Browser-/Server-Komponenten benötigen.
 Dokumentation: https://doc.qt.io/qtforpython-6/gettingstarted.html
@@ -47,3 +47,17 @@ Anforderungen, insbesondere für Ausfälle und versehentlich sichtbare Gesichter
 `pyproject.toml` beschreibt Paket und Werkzeugkonfiguration. Der Versions-Snapshot
 in `requirements-dev.lock` hält direkte und transitive Entwicklungsdependencies
 fest. Aktualisierungen erfolgen in separaten PRs mit Tests.
+
+## 006 · Kamera anhand der Gerätekennung auswählen
+
+QMediaDevices liefert Gerätenamen und IDs; QCamera öffnet im Kindprozess exakt
+die gewählte ID. Die Reihenfolge einer OpenCV-Geräteliste wird nicht vorausgesetzt.
+QVideoSink liefert Frames, die vor der Filterung in BGR konvertiert werden.
+Die UI behält die Auswahl anhand der ID auch bei einer umsortierten Liste.
+Fehlt die aktive Kamera nach einer Geräteänderung, stoppt die Vorschau.
+Eine Kamera wird erst nach dem Start geöffnet, nicht beim Auflisten.
+Quelle und Kamera können während der Vorschau geändert werden; der Wechsel
+stoppt zunächst die alte Quelle. Qt-Geräteüberwachung und ein Aktualisieren-Knopf
+ermöglichen neu angeschlossene Kameras. Hardware-Abnahme weiterhin erforderlich.
+
+Referenz: https://doc.qt.io/qtforpython-6/PySide6/QtMultimedia/QMediaDevices.html

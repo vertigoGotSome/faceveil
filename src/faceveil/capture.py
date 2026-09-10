@@ -7,15 +7,16 @@ from pathlib import Path
 import cv2
 
 from faceveil.detection import FaceDetector
+from faceveil.devices import CameraCapture, CameraSource
 from faceveil.filters import anonymize
 
 
 def validate_source(source):
-    if isinstance(source, int) and not isinstance(source, bool) and 0 <= source <= 99:
+    if isinstance(source, CameraSource) and source.device_id:
         return source
     if isinstance(source, str) and Path(source).is_file():
         return source
-    raise ValueError("Bitte eine Kamera (0–99) oder eine vorhandene Videodatei wählen.")
+    raise ValueError("Bitte eine verbundene Kamera oder eine vorhandene Videodatei wählen.")
 
 
 def offer(output, packet):
@@ -32,9 +33,15 @@ def capture_loop(source, initial_settings, output, commands, stopped):
     output.cancel_join_thread()
     try:
         validate_source(source)
-        capture = cv2.VideoCapture(source)
+        capture = (
+            CameraCapture(source, stopped)
+            if isinstance(source, CameraSource)
+            else cv2.VideoCapture(source)
+        )
         if not capture.isOpened():
-            raise RuntimeError("Quelle nicht verfügbar. Kameraindex und Berechtigungen prüfen.")
+            raise RuntimeError(
+                "Quelle nicht verfügbar. Kameraverbindung und Berechtigungen prüfen."
+            )
         detector = FaceDetector()
         settings = initial_settings
         generation = 0

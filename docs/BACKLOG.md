@@ -4,9 +4,10 @@
 
 Ziel: Kameraauswahl ohne Raten des Index.
 
-- [ ] Angeschlossene Kameras auf Windows mit stabiler Zuordnung auflisten.
-- [ ] Aktualisieren ohne blockierende Oberfläche.
-- [ ] Keine Geräte, belegte Kamera und Hotplug behandeln.
+- [x] Geräte mit Namen auflisten und über dieselbe Qt-Gerätekennung öffnen.
+- [x] Liste bei Geräteänderungen und per Aktualisieren-Knopf erneuern, ohne Kameras zu öffnen.
+- [x] Leere Geräteliste und Auswahl nach Umsortieren behandeln.
+- [ ] Belegte Kamera und Hotplug mit echter Hardware abnehmen.
 - [ ] Auswahl öffnet nachweislich die angezeigte Kamera.
 
 ## 2. Gesichtserkennung evaluieren und verbessern

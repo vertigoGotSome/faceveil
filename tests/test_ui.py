@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 
 from faceveil.app import MainWindow
+from faceveil.devices import CameraSource
 
 
 class FakeProcess:
@@ -65,9 +66,52 @@ def test_real_process_video_start_stop_restart(qtbot, tmp_path):
     window.source.setCurrentIndex(1)
     window.file_path = path
     for _ in range(2):
+        window.source.setCurrentIndex(1)
         window.start_capture()
         qtbot.waitUntil(lambda: not window.preview.pixmap().isNull(), timeout=15000)
         assert "Abdeckung aktiv" in window.status.text()
-        window.stop_capture()
+        assert window.source.isEnabled()
+        window.source.setCurrentIndex(0)
         assert window.process is None
         assert window.preview.pixmap().isNull()
+
+
+def test_named_cameras_keep_selection_after_reordering(qtbot, monkeypatch):
+    devices = [CameraSource(b"a", "USB Webcam"), CameraSource(b"b", "OBS Virtual Camera")]
+    monkeypatch.setattr("faceveil.app.list_cameras", lambda: devices)
+    window = MainWindow()
+    qtbot.addWidget(window)
+    assert window.camera.itemText(0) == "USB Webcam"
+    assert window.camera.itemText(1) == "OBS Virtual Camera"
+    window.camera.setCurrentIndex(1)
+    devices.reverse()
+    window.refresh_cameras()
+    assert window.camera.currentData().device_id == b"b"
+    assert window.camera.currentText() == "OBS Virtual Camera"
+
+
+def test_no_camera_cannot_start_and_refresh_finds_new_device(qtbot, monkeypatch):
+    devices = []
+    monkeypatch.setattr("faceveil.app.list_cameras", lambda: devices)
+    window = MainWindow()
+    qtbot.addWidget(window)
+    assert window.camera.currentText() == "Keine Kamera gefunden"
+    window.start_capture()
+    assert window.process is None
+    assert "Keine Kamera verbunden" in window.status.text()
+    devices.append(CameraSource(b"usb", "USB Webcam"))
+    window.refresh_cameras()
+    assert window.camera.isEnabled()
+    assert window.camera.currentText() == "USB Webcam"
+
+
+def test_file_source_shows_file_controls(qtbot, monkeypatch):
+    monkeypatch.setattr("faceveil.app.list_cameras", lambda: [])
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.source.setCurrentIndex(1)
+    assert window.camera.isHidden()
+    assert not window.choose_file.isHidden()
+    window.source.setCurrentIndex(0)
+    assert not window.camera.isHidden()
+    assert window.choose_file.isHidden()

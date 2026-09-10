@@ -1,0 +1,22 @@
+name: Fehler melden
+description: Einen reproduzierbaren Fehler beschreiben
+title: 'bug: '
+body:
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zum Nachstellen
+      description: Welche Quelle, welcher Filter, welche Einstellungen? Keine privaten Aufnahmen hochladen.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Erwartetes und tatsächliches Verhalten
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Umgebung
+      placeholder: Windows-Version, Python-Version, Kamera oder Videodatei

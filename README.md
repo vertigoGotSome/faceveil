@@ -1,18 +1,76 @@
 # FaceVeil
 
-Eine eigenständige lokale Python-Desktop-App für Kamera-Gesichtsfilter.
-Version 0.1 ist ein Entwicklungsprototyp, keine zertifizierte Anonymisierung.
+FaceVeil is a local Windows desktop application for real-time camera privacy filters.
 
-## Start auf Windows
+It captures a physical camera or video file, detects faces locally, applies configurable privacy filters, and displays the processed result in a live preview.
 
-Python 3.11 ist die getestete Version. Im Projektordner:
+An experimental virtual-camera output is currently being developed so the processed FaceVeil stream can also be used in applications such as Discord, OBS, Teams, and browsers.
+
+> FaceVeil is an experimental privacy tool. It is not certified anonymization software and does not guarantee that every face will always be detected or anonymized.
+
+## Current status
+
+FaceVeil currently supports:
+
+- physical camera input
+- named camera-device selection
+- video-file input
+- YuNet face detection
+- Haar-based fallback detection
+- face landmarks
+- configurable detection confidence
+- region-of-interest detection
+- full-face, eyes, and mouth targeting
+- pixelation
+- blur
+- mosaic
+- solid covering
+- full-frame privacy cover
+- detection-loss blackout protection
+- local live preview
+- optional OpenGL preview rendering
+- multiprocessing-based capture
+- shared latest-frame transport with `FrameMailbox`
+- automated tests with pytest and pytest-qt
+- Ruff linting
+- an experimental debug-only virtual-camera proof of concept
+
+The current virtual-camera proof of concept uses `pyvirtualcam` with the OBS Virtual Camera backend.
+
+This proves that FaceVeil can successfully send its already processed output to applications such as Discord.
+
+The long-term goal is a dedicated, independently selectable FaceVeil virtual-camera device instead of occupying the OBS Virtual Camera.
+
+## Requirements
+
+Current primary development platform:
+
+- Windows
+- Python 3.11
+
+FaceVeil currently depends on packages including:
+
+- PySide6
+- OpenCV
+- NumPy
+- pyvirtualcam
+
+Development tools include:
+
+- pytest
+- pytest-qt
+- Ruff
+
+## Setup on Windows
+
+From the project root:
 
 ```powershell
 .\setup.ps1
 .\start.ps1
 ```
 
-Falls PowerShell Skripte sperrt, dieselben Schritte ohne Änderung der Sicherheitsrichtlinie:
+If PowerShell scripts are unavailable, the environment can be created manually:
 
 ```powershell
 py -3.11 -m venv .venv
@@ -21,92 +79,302 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m faceveil
 ```
 
-Die virtuelle Umgebung `.venv` enthält ausschließlich die Pakete dieses Projekts.
-Sie wird nicht in Git gespeichert. `pip install -e .` verbindet die Installation
-mit dem Quellcode: Änderungen sind beim nächsten Start direkt verfügbar.
-VS Code: Projektordner öffnen und `.venv\Scripts\python.exe` als Interpreter wählen.
+The `.venv` directory is local to the project and is not committed to Git.
 
-## Benutzung
+For VS Code, open the repository root and select:
 
-1. Unter **Quelle** entweder **Kamera** oder **Videodatei** wählen.
-   Unter **Kamera** erscheint die Liste angeschlossener Geräte mit Namen,
-   einschließlich verfügbarer virtueller Kameras. Bei Bedarf **Kameraliste
-   aktualisieren** drücken. Die Liste aktualisiert sich auch bei Geräteänderungen.
-   Bei **Videodatei** erscheinen stattdessen Dateiauswahl und Dateiname.
-2. **Vorschau starten**. Die Kamera wird erst jetzt geöffnet.
-3. Standardmäßig ist das gesamte Bild schwarz abgedeckt. Zum Ausprobieren der
-   Gesichtseffekte **Gesamtes Bild schwarz abdecken** deaktivieren.
-4. Pixelation, Blur, Mosaic oder Abdecken wählen; Stärke und Gesichtsrand anpassen.
-   Bei Abdecken ist die Stärke ohne Bedeutung. Spiegelung betrifft die Vorschau.
-5. Ein Quellen- oder Kamerawechsel stoppt die laufende Vorschau automatisch.
-   Danach **Vorschau starten** drücken. Dateiende stoppt die Vorschau ebenfalls.
+```text
+.venv\Scripts\python.exe
+```
 
-Pixelation erzeugt grobe Farbblöcke, Blur einen Gauß-Weichzeichner, Mosaic ein
-sichtbares Kachelraster, Abdecken schwarze Rechtecke über erkannten Gesichtern.
-Die vollständige Bildabdeckung arbeitet unabhängig vom Detektor.
+as the Python interpreter.
 
-## Grenzen der Gesichtserkennung
+## Usage
 
-Das mit OpenCV gelieferte Haar-Modell erkennt vor allem frontale Gesichter.
-Profile, Verdeckung, schlechte Beleuchtung, Bewegung und kleine Gesichter können
-zu übersehenen Gesichtern führen. Auch wenn ein Gesicht erkannt wird, können
-weitere Gesichter im selben Bild unentdeckt bleiben. Es gibt noch kein Tracking.
-Pixelation und Blur sind visuelle Effekte und garantieren keine Unkenntlichkeit.
-Nur die vollständige schwarze Bildabdeckung entfernt in dieser Vorschau sämtliche
-Bildinformation. Das Originalvideo auf der Festplatte bleibt unverändert.
+### Camera input
 
-Die App speichert keine Bilder und enthält keine Upload-, Netzwerkstream- oder
-Telemetriefunktion. Kamera-/Videodaten werden lokal verarbeitet. Keine virtuelle
-Kamera, Bildschirmaufnahme, Audioverarbeitung oder Exportfunktion in Version 0.1.
+1. Select **Camera** as the input source.
+2. Select one of the detected camera devices.
+3. Refresh the device list if necessary.
+4. Press **Start camera**.
+5. Configure the desired privacy filter.
 
-## Projektaufbau
+FaceVeil opens the selected camera only after capture is started.
+
+### Video-file input
+
+1. Select **Video file**.
+2. Choose a supported video file.
+3. Press **Start video**.
+
+Video input is useful for reproducible testing, development, demonstrations, and debugging without requiring a live camera.
+
+### Privacy controls
+
+FaceVeil supports:
+
+- Pixelate
+- Blur
+- Mosaic
+- Solid cover
+
+Privacy can target:
+
+- the entire face
+- the eyes
+- the mouth
+
+Additional controls include:
+
+- filter strength
+- padding
+- maximum number of processed faces
+- detector confidence
+- region of interest
+- preview mirroring
+- full-frame covering
+- detection-loss blackout protection
+
+Full-frame covering operates independently from face detection.
+
+## Experimental virtual camera
+
+FaceVeil currently contains an experimental virtual-camera proof of concept.
+
+When enabled through the current debug implementation, the already processed FaceVeil frame is also sent to a virtual-camera backend.
+
+Current experimental data flow:
+
+```text
+Camera / Video
+      ↓
+Capture
+      ↓
+Detector
+      ↓
+Privacy Pipeline
+      ↓
+Filters
+      ↓
+Processed Frame
+   ↙             ↘
+Preview       Virtual Camera
+```
+
+The virtual-camera path does not run a second detector or privacy pipeline.
+
+The current proof of concept uses `pyvirtualcam` and the OBS Virtual Camera backend.
+
+It has been successfully tested with Discord.
+
+### Current limitation
+
+The proof of concept currently uses the externally visible device:
+
+```text
+OBS Virtual Camera
+```
+
+This is not the intended final user experience.
+
+The planned FaceVeil virtual-camera feature should use an independent device, ideally exposed to applications as something similar to:
+
+```text
+FaceVeil Virtual Camera
+```
+
+A custom Windows kernel driver is currently out of scope. Existing Windows virtual-camera backends and APIs will be evaluated first.
+
+## Face detection
+
+The primary detector is YuNet.
+
+The model is stored under:
+
+```text
+src/faceveil/models/yunet.onnx
+```
+
+FaceVeil verifies the expected model before using it.
+
+The detector supports:
+
+- face bounding boxes
+- confidence scores
+- five facial landmarks
+- configurable detection resolution
+- regions of interest
+- optional OpenCL acceleration
+
+If YuNet is unavailable, FaceVeil can fall back to a simpler Haar-based detector.
+
+The fallback detector provides reduced capabilities.
+
+## Privacy limitations
+
+Face detection is inherently imperfect.
+
+Faces may be missed because of:
+
+- profile angles
+- occlusion
+- poor lighting
+- motion blur
+- small faces
+- unusual camera angles
+- detector limitations
+
+Pixelation, blur, mosaic, and partial facial covering are visual privacy effects and do not guarantee anonymity.
+
+The detection-loss guard is intended to reduce accidental exposure when detection becomes unstable, but it is not a formal privacy guarantee.
+
+For the strongest visual blocking behavior inside FaceVeil, use full-frame covering.
+
+## Architecture
+
+The application uses a modular architecture.
 
 ```text
 src/faceveil/
-  app.py         Desktop-UI und Prozesssteuerung
-  capture.py     Quellenvalidierung und Verarbeitungsschleife
-  detection.py   austauschbare Gesichtserkennung
-  devices.py     Gerätenamen, Gerätekennungen und Qt-Kamerazugriff
-  filters.py     Einstellungen und Bildfilter ohne UI-Abhängigkeit
-tests/           Filter-, Video- und UI-Tests ohne echte Kamera
-.github/         CI, Issue-Formulare und Pull-Request-Vorlage
-docs/            Architektur, Lernpfad und geplante Arbeitspakete
+    app.py
+        PySide6 application UI and application lifecycle
+
+    capture.py
+        Camera/video acquisition and processing worker
+
+    devices.py
+        Camera discovery and device identity
+
+    detector.py
+        YuNet detection and fallback detector
+
+    filters.py
+        Filter settings and image-processing operations
+
+    pipeline.py
+        Privacy targeting and anonymization pipeline
+
+    preview.py
+        Raster/OpenGL preview rendering and diagnostics
+
+    transport.py
+        Shared latest-frame transport using FrameMailbox
+
+    model_setup.py
+        YuNet model setup and verification
+
+    theme.py
+        Application styling
+
+    virtual_camera.py
+        Experimental virtual-camera backend abstraction
+
+    models/
+        Detector models and associated license files
+
+tests/
+    Automated application, capture, pipeline, filter, and UI tests
+
+.github/
+    GitHub workflow configuration and repository templates
+
+docs/
+    Architecture and development documentation
 ```
 
-Warum diese Trennung? Filter lassen sich mit künstlichen Bildern testen.
-Eine spätere bessere Gesichtserkennung ersetzt `detection.py`, ohne die UI neu
-zu schreiben. Ein Kindprozess hält blockierende Kameratreiber von der UI fern.
-Die Vorschau empfängt ausschließlich verarbeitete Bilder, keine Rohbilder.
+## Process architecture
 
-## Qualität prüfen
+Capture and image processing run separately from the main UI.
+
+Processed frames are transferred through `FrameMailbox`, a shared-memory latest-frame slot.
+
+This avoids placing full-resolution NumPy frames into multiprocessing queues.
+
+Generation and sequence identifiers are used so stale frames can be rejected after settings changes.
+
+Conceptually:
+
+```text
+Capture worker
+      │
+      ├── small control/status messages
+      │
+      └── processed image
+              ↓
+        FrameMailbox
+              ↓
+             UI
+```
+
+## Quality checks
+
+Before committing:
 
 ```powershell
-.\.venv\Scripts\python.exe -m ruff check .
-.\.venv\Scripts\python.exe -m ruff format --check .
-.\.venv\Scripts\python.exe -m pytest -q
+python -m ruff check .
+python -m pytest -v
 ```
 
-Ruff findet typische Codefehler und vereinheitlicht die Formatierung.
-Pytest prüft Verhalten; pytest-qt testet die Oberfläche ohne eine echte Kamera.
-Die GitHub-Action führt diese Prüfungen bei Pull Requests und Änderungen auf
-`main` auf Windows mit Python 3.11 aus. `requirements-dev.lock` hält die lokal
-geprüften Paketversionen fest; es enthält keine Hash-Prüfung der Downloads.
+The project previously established a green baseline of 39 automated tests before further virtual-camera development.
 
-## Zusammenarbeit
+The exact number may increase as new features and tests are added.
 
-Siehe [CONTRIBUTING.md](CONTRIBUTING.md) für Issue → Branch → Commit → PR → Merge.
-Der initiale Aufbau wird in nachvollziehbaren Commits festgehalten; nachfolgende
-Änderungen erhalten jeweils ein Issue. Nächste Arbeitspakete stehen im
-[Backlog](docs/BACKLOG.md), die technischen Entscheidungen in der
-[Architektur](docs/ARCHITECTURE.md).
+A successful run is more important than preserving a specific test count.
 
-## Herkunft und Sichtbarkeit
+## Development workflow
 
-Inspiriert vom allgemeinen Konzept lokaler visueller Filter, unter anderem
-[Beta Blocker](https://isla2d.itch.io/beta-blocker). Kein Code, Designmaterial oder
-Asset dieses Produkts wurde übernommen. FaceVeil ist nicht damit verbunden.
+FaceVeil uses a GitHub-based workflow:
 
-Das GitHub-Repository muss **privat** sein. Dieser Projektcode wird aktuell nicht
-unter einer Open-Source-Lizenz freigegeben. Drittanbieterpakete und das
-OpenCV-Modell behalten ihre jeweiligen Lizenzen; siehe
-[THIRD_PARTY.md](THIRD_PARTY.md).
+```text
+Idea
+  ↓
+GitHub Issue
+  ↓
+Feature Branch
+  ↓
+Implementation + Tests
+  ↓
+Commit
+  ↓
+Pull Request
+  ↓
+CI / Review
+  ↓
+Merge to main
+```
+
+`main` should remain functional.
+
+Larger changes should normally be associated with an issue and developed on a dedicated branch.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## Current development milestone
+
+Current major development target:
+
+```text
+v0.2.0 — Virtual Camera Output
+```
+
+The corresponding work includes the first production-ready virtual-camera output for FaceVeil.
+
+The current OBS-backed implementation is a proof of concept and not the final backend design.
+
+## Repository status
+
+FaceVeil is currently maintained as a private repository.
+
+The project is not currently published under an open-source license.
+
+Third-party components retain their own licenses.
+
+See [THIRD_PARTY.md](THIRD_PARTY.md).
+
+## Inspiration
+
+FaceVeil was inspired by the general concept of local visual privacy filters, including projects such as Beta Blocker.
+
+No source code, assets, or design materials from Beta Blocker were copied into FaceVeil.
+
+FaceVeil is not affiliated with Beta Blocker.

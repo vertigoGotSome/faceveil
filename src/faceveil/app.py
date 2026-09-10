@@ -67,12 +67,12 @@ class TitleBar(QWidget):
         row.addStretch()
 
         for text, tooltip, callback in (
-            ("âˆ’", "Minimize", window.showMinimized),
-            ("â–¡", "Maximize / restore", self.toggle_maximize),
-            ("Ã—", "Close", window.close),
+            ("🗕", "Minimize", window.showMinimized),
+            ("🗖", "Maximize / restore", self.toggle_maximize),
+            ("×", "Close", window.close),
         ):
             button = QPushButton(text)
-            button.setObjectName("closeButton" if text == "Ã—" else "windowButton")
+            button.setObjectName("closeButton" if text == "×" else "windowButton")
             button.setFixedSize(42, 40)
             button.setToolTip(tooltip)
             button.setAccessibleName(tooltip)
@@ -124,7 +124,7 @@ class MainWindow(QMainWindow):
         self.preview = Preview()
 
         self.status = label(
-            "Ready Â· Your camera stays off until you press Start.",
+            "Ready • Your camera stays off until you press Start.",
             "muted",
         )
         self.status.setWordWrap(True)
@@ -203,7 +203,7 @@ class MainWindow(QMainWindow):
         self.performance = QComboBox()
         self.performance.addItems(
             [
-                "Efficient Â· older PCs",
+                "Efficient • older PCs",
                 "Balanced",
                 "Detail",
             ]
@@ -238,7 +238,7 @@ class MainWindow(QMainWindow):
         self.stop_button = QPushButton("Stop")
         self.stop_button.setEnabled(False)
 
-        self.panic_button = QPushButton("Cover now  Â·  Esc")
+        self.panic_button = QPushButton("Cover now  •  Esc")
         self.panic_button.setObjectName("danger")
 
         self.debug_button = QPushButton("Debug")
@@ -261,7 +261,7 @@ class MainWindow(QMainWindow):
             (
                 "YuNet ready"
                 if MODEL_PATH.is_file()
-                else "Basic detector Â· YuNet missing"
+                else "Basic detector • YuNet missing"
             ),
             "badge",
         )
@@ -1062,7 +1062,7 @@ class MainWindow(QMainWindow):
                 self.status.setText(
 
                         f"{stats['selected']} / "
-                        f"{stats['found']} faces covered Â· "
+                        f"{stats['found']} faces covered • "
                         f"{notice}"
 
                 )
@@ -1097,14 +1097,14 @@ class MainWindow(QMainWindow):
 
                     self.debug_text.setText(
 
-                            f"{stats['fps']:.1f} processing FPS Â· "
-                            f"{stats['resolution']} Â· "
+                            f"{stats['fps']:.1f} processing FPS • "
+                            f"{stats['resolution']} • "
                             f"transfer age {age * 1000:.1f} ms\n"
                             f"Capture {stats['capture_ms']:.1f} ms  /  "
                             f"Detect {stats['detect_ms']:.1f} ms  /  "
                             f"Filter {stats['filter_ms']:.1f} ms\n"
-                            f"{stats['model']} Â· "
-                            f"{stats['backend']} Â· "
+                            f"{stats['model']} • "
+                            f"{stats['backend']} • "
                             "dropped notifications "
                             f"{stats['dropped']}\n"
                             f"Model scores: {scores} "
@@ -1175,7 +1175,7 @@ class MainWindow(QMainWindow):
 
     def stop_capture(
         self,
-        message="Stopped Â· Capture released",
+        message="Stopped • Capture released",
     ):
         
         self.timer.stop()
@@ -1220,7 +1220,7 @@ class MainWindow(QMainWindow):
             self.status.setText(message)
         else:
             self.status.setText(
-                "Stopped Â· Capture released"
+                "Stopped • Capture released"
             )
 
     def closeEvent(self, event):

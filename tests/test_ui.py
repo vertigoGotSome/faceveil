@@ -44,6 +44,7 @@ def test_missing_file_shows_actionable_message(qtbot):
     window = MainWindow()
     qtbot.addWidget(window)
 
+    window.debug_button.setChecked(True)
     window.source.setCurrentIndex(1)
     window.start_capture()
 
@@ -144,6 +145,7 @@ def test_real_process_video_start_stop_restart(qtbot, tmp_path):
 
     window.file_path = path
 
+    window.debug_button.setChecked(True)
     for _ in range(2):
         window.source.setCurrentIndex(1)
         window.start_capture()
@@ -231,6 +233,7 @@ def test_file_source_shows_file_controls(qtbot, monkeypatch):
     window = MainWindow()
     qtbot.addWidget(window)
 
+    window.debug_button.setChecked(True)
     window.source.setCurrentIndex(1)
 
     assert window.camera.isHidden()
@@ -240,3 +243,33 @@ def test_file_source_shows_file_controls(qtbot, monkeypatch):
 
     assert not window.camera.isHidden()
     assert window.choose_file.isHidden()
+
+
+def test_debug_source_and_output_are_explicit(qtbot):
+    window = MainWindow()
+    qtbot.addWidget(window)
+    assert window.source.count() == 1
+    window.debug_button.setChecked(True)
+    assert window.source.count() == 2
+    assert not window.virtual_camera.active
+    window.source.setCurrentIndex(1)
+    window.debug_button.setChecked(False)
+    assert window.source.currentData() == "camera"
+    assert window.source.count() == 1
+    assert not window.virtual_camera.active
+
+
+def test_escape_is_latched_until_explicit_resume(qtbot):
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.cover_all.setChecked(False)
+    window.panic()
+    window.panic()
+    assert window.shield
+    assert window.settings().cover_all
+    window.cover_all.setChecked(False)
+    assert window.settings().cover_all
+    assert window.preview.image.isNull()
+    window.resume_video()
+    assert not window.shield
+    assert not window.settings().cover_all

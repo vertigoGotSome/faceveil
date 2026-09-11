@@ -39,12 +39,15 @@ class VirtualCameraOutput:
                 height=height,
                 fps=fps,
                 fmt=PixelFormat.BGR,
+                backend="unitycapture",
+                device="FaceVeil Virtual Camera",
             )
         except Exception as exc:
             self._camera = None
             raise VirtualCameraError(
                 "Could not start a virtual camera. "
-                "Make sure OBS and its Virtual Camera are installed."
+                "Install FaceVeil Virtual Camera using tools/install-virtual-camera.ps1. "
+                "OBS is never used as an output backend."
             ) from exc
 
         self._width = width
@@ -66,11 +69,12 @@ class VirtualCameraOutput:
         height, width = frame.shape[:2]
 
         if width != self._width or height != self._height:
-            frame = cv2.resize(
-                frame,
-                (self._width, self._height),
-                interpolation=cv2.INTER_LINEAR,
-            )
+            scale = min(self._width / width, self._height / height)
+            size = (max(1, round(width * scale)), max(1, round(height * scale)))
+            resized = cv2.resize(frame, size, interpolation=cv2.INTER_AREA)
+            frame = np.zeros((self._height, self._width, 3), dtype=np.uint8)
+            x, y = (self._width - size[0]) // 2, (self._height - size[1]) // 2
+            frame[y : y + size[1], x : x + size[0]] = resized
 
         try:
             self._camera.send(frame)
@@ -83,7 +87,10 @@ class VirtualCameraOutput:
             return
 
         try:
-            self._camera.close()
+            try:
+                self._camera.send(np.zeros((self._height, self._width, 3), dtype=np.uint8))
+            finally:
+                self._camera.close()
         finally:
             self._camera = None
             self._width = 0

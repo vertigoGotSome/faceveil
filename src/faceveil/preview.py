@@ -3,6 +3,7 @@
 import os
 from collections import deque
 
+import cv2
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QImage, QPainter, QPainterPath, QPen
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
@@ -102,6 +103,11 @@ class Preview(QWidget):
 
     def set_frame(self, frame, stats):
         height, width = frame.shape[:2]
+        if self.maximumHeight() <= 240 and width > 480:
+            frame = cv2.resize(
+                frame, (480, max(1, round(height * 480 / width))), interpolation=cv2.INTER_AREA
+            )
+            height, width = frame.shape[:2]
         # Qt understands BGR directly: no additional full-frame RGB conversion.
         self.image = QImage(
             frame.data, width, height, frame.strides[0], QImage.Format.Format_BGR888

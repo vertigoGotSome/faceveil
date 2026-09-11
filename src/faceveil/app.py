@@ -6,7 +6,7 @@ import sys
 import time
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtGui import QColor, QKeySequence, QPainter, QPen, QShortcut
 from PySide6.QtMultimedia import QMediaDevices
 from PySide6.QtWidgets import (
     QApplication,
@@ -32,10 +32,10 @@ from faceveil.capture import capture_loop
 from faceveil.detector import MODEL_PATH
 from faceveil.devices import list_cameras
 from faceveil.filters import FaceArea, FilterMode, Settings
+from faceveil.output_service import OutputService
 from faceveil.preview import Preview, TimingGraph
 from faceveil.theme import STYLE
 from faceveil.transport import FrameMailbox
-from faceveil.virtual_camera import VirtualCameraError, VirtualCameraOutput
 
 
 def label(text, name=None):
@@ -43,6 +43,32 @@ def label(text, name=None):
     if name:
         widget.setObjectName(name)
     return widget
+
+
+class WindowButton(QPushButton):
+    """Vector window controls independent of font glyph availability."""
+
+    def __init__(self, action, owner):
+        super().__init__()
+        self.action = action
+        self.owner = owner
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setPen(QPen(QColor("#e5eaf5"), 1.2))
+        x, y = self.width() // 2 - 5, self.height() // 2 - 5
+        if self.action == "Minimize":
+            painter.drawLine(x, y + 9, x + 10, y + 9)
+        elif self.action == "Close":
+            painter.drawLine(x, y, x + 10, y + 10)
+            painter.drawLine(x + 10, y, x, y + 10)
+        elif self.owner.isMaximized():
+            painter.drawRect(x + 2, y, 8, 8)
+            painter.fillRect(x, y + 2, 8, 8, QColor("#1c1f26"))
+            painter.drawRect(x, y + 2, 8, 8)
+        else:
+            painter.drawRect(x, y, 10, 10)
 
 
 class TitleBar(QWidget):
@@ -66,13 +92,16 @@ class TitleBar(QWidget):
 
         row.addStretch()
 
-        for text, tooltip, callback in (
-            ("🗕", "Minimize", window.showMinimized),
-            ("🗖", "Maximize / restore", self.toggle_maximize),
-            ("×", "Close", window.close),
+        for tooltip, callback in (
+            ("Minimize", window.showMinimized),
+            (
+                "Maximize / restore",
+                self.toggle_maximize,
+            ),
+            ("Close", window.close),
         ):
-            button = QPushButton(text)
-            button.setObjectName("closeButton" if text == "×" else "windowButton")
+            button = WindowButton(tooltip, window)
+            button.setObjectName("closeButton" if tooltip == "Close" else "windowButton")
             button.setFixedSize(42, 40)
             button.setToolTip(tooltip)
             button.setAccessibleName(tooltip)
@@ -98,7 +127,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("FaceVeil â€” Camera Studio")
+        self.setWindowTitle("FaceVeil — Camera Studio")
         self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.FramelessWindowHint)
         self.resize(1240, 850)
         self.setMinimumSize(1000, 720)
@@ -115,7 +144,17 @@ class MainWindow(QMainWindow):
         self.last_frame = 0.0
         self.pending_settings = None
         self.last_debug_update = 0.0
-        self.virtual_camera = VirtualCameraOutput()
+        self.virtual_camera = OutputService()
+        self.shield = False
+        self.last_preview = 0.0
+        self.preview_title = label("LIVE PREVIEW", "eyebrow")
+        self.output_status = label("Output stopped · FaceVeil Virtual Camera", "muted")
+        self.output_status.setWordWrap(True)
+        self.output_button = QPushButton("Start virtual camera")
+        self.output_button.clicked.connect(self.toggle_output)
+        self.resume_button = QPushButton("Resume filtered video")
+        self.resume_button.clicked.connect(self.resume_video)
+        self.resume_button.hide()
         self.preview = Preview()
 
         self.status = label(
@@ -126,7 +165,7 @@ class MainWindow(QMainWindow):
 
         self.source = QComboBox()
         self.source.addItem("Camera", "camera")
-        self.source.addItem("Video file", "file")
+        self.source.hide()
         self.source.setAccessibleName("Input source")
 
         self.file_path = ""
@@ -457,6 +496,7 @@ class MainWindow(QMainWindow):
             ("Safety", safety),
         ):
             page = QWidget()
+            page.setObjectName("settingsPage")
             page.setLayout(form)
 
             scroll = QScrollArea()
@@ -469,6 +509,7 @@ class MainWindow(QMainWindow):
         side.addWidget(self.model_label)
         side.addWidget(self.scope_note)
         side.addWidget(self.panic_button)
+        side.addWidget(self.resume_button)
 
         buttons = QHBoxLayout()
         buttons.addWidget(
@@ -481,8 +522,10 @@ class MainWindow(QMainWindow):
         body.addWidget(sidebar)
 
         right = QVBoxLayout()
+        self.right_layout = right
 
         preview_card = QFrame()
+        self.preview_card = preview_card
         preview_card.setObjectName("card")
 
         preview_layout = QVBoxLayout(preview_card)
@@ -494,7 +537,7 @@ class MainWindow(QMainWindow):
         )
 
         preview_heading = QHBoxLayout()
-        preview_heading.addWidget(label("LIVE PREVIEW", "eyebrow"))
+        preview_heading.addWidget(self.preview_title)
         preview_heading.addStretch()
         preview_heading.addWidget(self.preview_badge)
 
@@ -504,6 +547,10 @@ class MainWindow(QMainWindow):
             1,
         )
         preview_layout.addWidget(self.renderer_label)
+        preview_layout.addWidget(self.output_status)
+        preview_layout.addWidget(self.output_button)
+        self.output_status.hide()
+        self.output_button.hide()
 
         right.addWidget(
             preview_card,
@@ -535,7 +582,7 @@ class MainWindow(QMainWindow):
         )
         bottom.addWidget(
             label(
-                "v0.2 Â·  Development build",
+                "v0.2 ·  Development build",
                 "muted",
             )
         )
@@ -561,14 +608,48 @@ class MainWindow(QMainWindow):
         self.preview.verify_renderer()
         self.renderer_label.setText(self.preview.renderer_name)
 
+    def update_output_view(self):
+        debug = self.debug_button.isChecked()
+        active = self.virtual_camera.active
+        self.preview_title.setText("VIRTUAL CAMERA" if debug else "LIVE PREVIEW")
+        self.output_button.setVisible(debug)
+        self.output_status.setVisible(debug)
+        self.output_button.setText("Stop virtual camera" if active else "Start virtual camera")
+        self.preview.setMaximumHeight(240 if active else 16777215)
+        self.right_layout.setStretchFactor(self.preview_card, 0 if active else 1)
+        self.right_layout.setStretchFactor(self.debug_panel, 1 if active else 0)
+        if self.virtual_camera.error:
+            self.output_status.setText(self.virtual_camera.error)
+        elif active:
+            self.output_status.setText(
+                "Virtual camera output active · FaceVeil Virtual Camera"
+                if self.virtual_camera.device
+                else "Starting virtual camera..."
+            )
+        else:
+            self.output_status.setText("Output stopped · Preview of the filtered output")
+
+    def toggle_output(self):
+        if self.virtual_camera.active:
+            self.virtual_camera.stop()
+        elif self.debug_button.isChecked() and self.process is not None:
+            self.virtual_camera.start(1280, 720, int(self.fps.currentText()))
+        else:
+            self.output_status.setText("Start a camera or debug video first.")
+            return
+        self.update_output_view()
+
     def toggle_debug(self):
         enabled = self.debug_button.isChecked()
-
         self.debug_panel.setVisible(enabled)
-
-        if not enabled:
+        self.source.setVisible(enabled)
+        if enabled:
+            self.source.addItem("Video file (debug only)", "file")
+        else:
             self.virtual_camera.stop()
-
+            self.source.setCurrentIndex(0)
+            self.source.removeItem(1)
+        self.update_output_view()
         self.settings_changed()
 
     def source_changed(self):
@@ -592,19 +673,20 @@ class MainWindow(QMainWindow):
         )
 
         if path:
+            self.stop_capture("Video source changed.")
             self.file_path = path
             self.choose_file.setText("Change video file")
             self.status.setText(f"Video selected: {path}")
 
     def selected_source(self):
         if self.source.currentData() == "file":
-            return self.file_path or None
+            return (self.file_path or None) if self.debug_button.isChecked() else None
 
         return self.camera.currentData()
 
     def refresh_cameras(self):
         previous = self.camera.currentData()
-        devices = list_cameras()
+        devices = [d for d in list_cameras() if d.name != "FaceVeil Virtual Camera"]
 
         self.camera.blockSignals(True)
         self.camera.clear()
@@ -660,7 +742,7 @@ class MainWindow(QMainWindow):
             mode=FilterMode(self.mode.currentText()),
             strength=self.strength.value(),
             margin=(self.margin.value() / 100),
-            cover_all=(self.cover_all.isChecked()),
+            cover_all=(self.cover_all.isChecked() or self.shield),
             mirror=self.mirror.isChecked(),
             area=FaceArea(self.area.currentText()),
             max_faces=(self.face_limit.currentData()),
@@ -706,8 +788,9 @@ class MainWindow(QMainWindow):
         if self.process is None:
             return
 
+        self.virtual_camera.invalidate()
         self.generation += 1
-        self.preview.clear("Updating privacy settingsâ€¦")
+        self.preview.clear("Updating privacy settings...")
 
         self.pending_settings = (
             self.generation,
@@ -726,11 +809,22 @@ class MainWindow(QMainWindow):
             self.stop_capture("Settings queue stalled. Restart the preview.")
 
     def panic(self):
-        self.cover_all.setChecked(True)
-        self.preview.clear("Full cover enabled")
+        if self.shield:
+            return
+        self.shield = True
+        self.virtual_camera.invalidate()
+        self.resume_button.show()
+        self.settings_changed()
+        self.preview.clear("Privacy Shield active · Resume explicitly to continue")
+        self.preview_badge.setText("SHIELD ON")
+        self.send_settings()
 
-        if self.process is not None:
-            self.send_settings()
+    def resume_video(self):
+        self.shield = False
+        self.resume_button.hide()
+        self.cover_all.setChecked(False)
+        self.settings_changed()
+        self.send_settings()
 
     def start_capture(self):
         if self.process is not None:
@@ -788,6 +882,7 @@ class MainWindow(QMainWindow):
         self.timer.start()
 
     def poll(self):
+        self.update_output_view()
         if self.process is None:
             return
 
@@ -836,30 +931,22 @@ class MainWindow(QMainWindow):
             if frame is not None and age < 0.5:
                 self.last_frame = time.perf_counter()
 
-                self.preview.set_frame(
-                    frame,
-                    stats,
+                if not self.shield:
+                    self.virtual_camera.submit(frame, stats["timestamp"])
+                    if (
+                        not self.virtual_camera.active
+                        or self.last_frame - self.last_preview >= 1 / 15
+                    ):
+                        self.preview.set_frame(
+                            frame, {} if self.debug_button.isChecked() else stats
+                        )
+                        self.last_preview = self.last_frame
+                else:
+                    self.preview.clear("Privacy Shield active")
+
+                self.preview_badge.setText(
+                    "SHIELD ON" if self.shield else ("COVERED" if stats["blocked"] else "LIVE")
                 )
-
-                if self.debug_button.isChecked():
-                    try:
-                        if not self.virtual_camera.active:
-                            height, width = frame.shape[:2]
-                            device = self.virtual_camera.start(
-                                width,
-                                height,
-                                int(self.fps.currentText()),
-                            )
-                            self.status.setText(f"Debug virtual camera active · {device}")
-
-                        self.virtual_camera.send(frame)
-
-                    except VirtualCameraError as exc:
-                        self.virtual_camera.stop()
-                        self.debug_button.setChecked(False)
-                        self.status.setText(str(exc))
-
-                self.preview_badge.setText("COVERED" if stats["blocked"] else "LIVE")
 
                 notice = stats["notice"] or "Local processing"
 
@@ -877,7 +964,7 @@ class MainWindow(QMainWindow):
                             ("n/a" if value is None else f"{value:.1%}")
                             for value in stats["scores"]
                         )
-                        or "â€”"
+                        or "—"
                     )
 
                     self.debug_text.setText(
@@ -897,8 +984,8 @@ class MainWindow(QMainWindow):
 
         elapsed = time.perf_counter() - self.last_frame
 
-        if elapsed > 0.75:
-            self.preview.clear("Waiting for a fresh processed frameâ€¦")
+        if elapsed > 0.5:
+            self.preview.clear("Waiting for a fresh processed frame...")
 
         if not self.process.is_alive():
             if self.source.currentData() == "file":
@@ -943,6 +1030,7 @@ class MainWindow(QMainWindow):
         self.timer.stop()
         self.settings_timer.stop()
         self.virtual_camera.stop()
+        self.update_output_view()
         self.pending_settings = None
         self.preview.clear()
 
@@ -981,7 +1069,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         self.stop_capture()
 
-        if self.process is None:
+        if self.process is None and not self.virtual_camera.active:
             event.accept()
         else:
             event.ignore()
